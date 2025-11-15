@@ -1,9 +1,5 @@
 # Rotor-RAG: 2-Bit Ternary Neural Networks
 
-**Methods that live, facts that breathe.**
-
-**Load a 2.4B parameter language model in 78 seconds on a 2016 laptop!**
-
 A practical implementation of the Rotor-RAG architecture combining:
 - **Rotor Core**: Tiny ternary neural networks with 2-bit encoding
 - **RAG Layer**: Dynamic knowledge retrieval (coming soon)
@@ -11,19 +7,13 @@ A practical implementation of the Rotor-RAG architecture combining:
 
 ---
 
-## 🎉 Recent Achievement
-
-**Successfully loaded Microsoft's BitNet-b1.58-2B-4T (2.4B parameters) in 78 seconds!**
-
-Hardware: Dual-core @ 1.6 GHz, 4GB RAM, NO GPU (2016-era laptop)
+Test Hardware: Dual-core @ 1.6 GHz, 4GB RAM, NO GPU (2016-era laptop)
 
 | Metric | Python | C Optimized | Speedup |
 |--------|--------|-------------|---------|
 | Model Load | 103 minutes | **78 seconds** | **79×** |
 | BitNet Conversion | 26.6s | 0.097s | **275×** |
 | Memory Usage | - | **1.1GB** | Tiny! |
-
-**Status:** 🚀 **Production Ready!**
 
 ---
 
@@ -39,7 +29,7 @@ RAG LAYER (facts/experience) ← Dynamic, continuous updates
 Perpetual relevance + massive efficiency
 ```
 
-**The breakthrough:** Data alignment optimized for SIMD operations achieves 79× speedup while maintaining the same memory footprint as Microsoft's BitNet format!
+Data alignment optimized for SIMD operations achieves 79× speedup while maintaining the same memory footprint as Microsoft's BitNet format!
 
 ---
 
