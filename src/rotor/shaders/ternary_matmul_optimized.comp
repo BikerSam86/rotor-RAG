@@ -1,0 +1,68 @@
+#version 450
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
+
+// Optimized Vulkan compute shader for ternary matrix multiplication
+// Optimized for: Intel HD Graphics 615 (subgroup_size=32, int8 support)
+// Also compatible with: Steam Deck RDNA 2
+
+// Use subgroup size for optimal performance (HD 615 = 32)
+layout(local_size_x = 32) in;
+
+// Input/output buffers
+layout(std430, binding = 0) readonly buffer PackedWeights {
+    int8_t ternary_weights[];  // Direct int8: {-1, 0, +1}
+};
+
+layout(std430, binding = 1) readonly buffer Input {
+    float input_data[];
+};
+
+layout(std430, binding = 2) readonly buffer Scales {
+    float scales[];
+};
+
+layout(std430, binding = 3) writeonly buffer Output {
+    float output_data[];
+};
+
+// Push constants for dimensions
+layout(push_constant) uniform Constants {
+    uint in_dim;
+    uint out_dim;
+} consts;
+
+void main() {
+    uint tid = gl_GlobalInvocationID.x;
+
+    // Bounds check
+    if (tid >= consts.out_dim) {
+        return;
+    }
+
+    float sum = 0.0;
+
+    // Compute dot product for this output element
+    // Each thread handles one row of the weight matrix
+    uint row_offset = tid * consts.in_dim;
+
+    // Process in chunks for better cache utilization
+    const uint CHUNK_SIZE = 32;
+    uint num_chunks = (consts.in_dim + CHUNK_SIZE - 1) / CHUNK_SIZE;
+
+    for (uint chunk = 0; chunk < num_chunks; chunk++) {
+        uint chunk_start = chunk * CHUNK_SIZE;
+        uint chunk_end = min(chunk_start + CHUNK_SIZE, consts.in_dim);
+
+        // Accumulate within chunk
+        for (uint i = chunk_start; i < chunk_end; i++) {
+            // Direct int8 access - much faster than bit unpacking!
+            int8_t weight = ternary_weights[row_offset + i];
+            sum += input_data[i] * float(weight);
+        }
+    }
+
+    // Apply scale and write output
+    output_data[tid] = sum * scales[tid];
+}
