@@ -1,0 +1,26 @@
+======================================================================
+BitNet Text Generation Demo
+======================================================================
+
+[1] Loading tokenizer...
+----------------------------------------------------------------------
+✓ Tokenizer loaded:
+  Vocabulary size: 128,256
+  BOS token: '<|begin_of_text|>' (ID: 128000)
+  EOS token: '<|end_of_text|>' (ID: 128001)
+  PAD token: '<pad>' (ID: 8085)
+✓ Tokenizer loaded in 1.06s
+
+[2] Loading BitNet model...
+----------------------------------------------------------------------
+This will take about 78 seconds with C optimizations...
+✓ Initialized BitNet model:
+  - Vocabulary: 128,256
+  - Hidden dim: 2560
+  - Layers: 30
+  - Heads: 20 (KV: 5)
+  - FFN dim: 6912
+Traceback (most recent call last):
+  File "C:\Users\samho\Desktop\rotor-rag-code\examples\generate_text.py", line 98, in <module>
+    scale_tensor = f.get_tensor(scale_name)
+safetensors_rust.SafetensorError: File does not contain tensor model.layers.0.self_attn.q_proj.scale

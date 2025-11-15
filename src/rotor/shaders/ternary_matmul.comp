@@ -1,0 +1,66 @@
+#version 450
+
+// Vulkan compute shader for ternary matrix multiplication
+// Target: Intel HD 615 (24 EUs) and Steam Deck RDNA 2 (8 CUs)
+
+layout(local_size_x = 256) in;
+
+// Input/output buffers
+layout(std430, binding = 0) readonly buffer PackedWeights {
+    uint packed_weights[];  // Packed 2-bit ternary weights
+};
+
+layout(std430, binding = 1) readonly buffer Input {
+    float input_data[];
+};
+
+layout(std430, binding = 2) readonly buffer Scales {
+    float scales[];
+};
+
+layout(std430, binding = 3) writeonly buffer Output {
+    float output_data[];
+};
+
+// Push constants for dimensions
+layout(push_constant) uniform Constants {
+    uint in_dim;
+    uint out_dim;
+} consts;
+
+// Decode 2-bit ternary value from packed format
+// Encoding: 0 -> -1, 1 -> 0, 2 -> +1
+float decode_ternary(uint packed_value, uint bit_offset) {
+    uint ternary = (packed_value >> (bit_offset * 2u)) & 0x3u;
+    return float(int(ternary) - 1);
+}
+
+void main() {
+    uint tid = gl_GlobalInvocationID.x;
+
+    // Bounds check
+    if (tid >= consts.out_dim) {
+        return;
+    }
+
+    float sum = 0.0;
+
+    // Compute dot product for this output element
+    // Each thread handles one row of the weight matrix
+    for (uint i = 0; i < consts.in_dim; i++) {
+        // Calculate position in packed array
+        // We pack 16 ternary values per uint32 (2 bits each)
+        uint weight_idx = tid * consts.in_dim + i;
+        uint packed_idx = weight_idx / 16u;
+        uint bit_offset = weight_idx % 16u;
+
+        // Decode ternary weight
+        float weight = decode_ternary(packed_weights[packed_idx], bit_offset);
+
+        // Multiply-accumulate
+        sum += input_data[i] * weight;
+    }
+
+    // Apply scale and write output
+    output_data[tid] = sum * scales[tid];
+}
