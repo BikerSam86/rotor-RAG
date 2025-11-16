@@ -167,10 +167,6 @@ class BitNetTokenizer:
 # Example usage
 if __name__ == "__main__":
     import sys
-    import io
-
-    # Fix Windows encoding
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
     print("=" * 70)
     print("BitNet Tokenizer Test")

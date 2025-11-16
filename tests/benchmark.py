@@ -7,10 +7,6 @@ import numpy as np
 import time
 import sys
 from pathlib import Path
-import io
-
-# Fix Windows encoding
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

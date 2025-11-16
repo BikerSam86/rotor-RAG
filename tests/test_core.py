@@ -6,10 +6,6 @@ import numpy as np
 import sys
 from pathlib import Path
 
-# Fix Windows console encoding
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

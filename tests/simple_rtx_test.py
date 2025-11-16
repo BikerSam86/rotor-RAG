@@ -8,6 +8,13 @@ sys.path.append('src')
 
 import numpy as np
 import time
+import pytest
+
+try:
+    import vulkan  # noqa: F401
+except Exception as exc:
+    pytest.skip(f"Vulkan SDK not available: {exc}", allow_module_level=True)
+
 from rotor.vulkan_ternary_full import VulkanTernaryCompute
 
 def simple_benchmark():
