@@ -340,6 +340,10 @@ class TextGenerator:
             yield new_token_text
 
 
+# Alias for clarity (Microsoft uses "top_p" terminology)
+NucleusSampling = TopPSampling
+
+
 # Example usage
 if __name__ == "__main__":
     print("Text generation utilities loaded!")
@@ -347,4 +351,5 @@ if __name__ == "__main__":
     print("  - GreedySampling: Always pick highest probability token")
     print("  - TopKSampling(k=50): Sample from top k tokens")
     print("  - TopPSampling(p=0.9): Sample from nucleus (cumulative prob >= p)")
+    print("  - NucleusSampling: Alias for TopPSampling")
     print("\nUse TextGenerator to generate text with a loaded model and tokenizer.")
