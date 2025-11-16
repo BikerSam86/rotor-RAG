@@ -45,7 +45,7 @@ Successfully implemented **hardware-accelerated inference** with three optimizat
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd rotor-rag-code
+cd rotor-RAG
 
 # Install core dependencies
 pip install numpy safetensors
@@ -210,7 +210,7 @@ Runs on laptops, tablets, even Raspberry Pi!
 ## 📁 Project Structure
 
 ```
-rotor-rag-code/
+rotor-RAG/
 ├── src/rotor/
 │   ├── core.py                    # 2-bit ternary encoding
 │   ├── quantization.py            # Ternary quantization
