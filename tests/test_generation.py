@@ -1,131 +1,82 @@
-"""
-Test text generation utilities.
-"""
+"""Unit tests for the sampling helpers used by TextGenerator."""
 
+import numpy as np
+import pytest
+
+# Ensure local imports work when running tests directly
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import numpy as np
-from rotor.generation import (
-    GreedySampling,
-    TopKSampling,
-    TopPSampling,
-)
+from rotor.generation import GreedySampling, TopKSampling, TopPSampling
 
-print("=" * 70)
-print("Generation Utilities Test")
-print("=" * 70)
 
-# Test logits (simulating model output)
-np.random.seed(42)
-vocab_size = 100
-test_logits = np.random.randn(vocab_size).astype(np.float32)
+@pytest.fixture(autouse=True)
+def reset_numpy_rng():
+    """Reset the legacy RNG so sampling tests remain deterministic."""
+    state = np.random.get_state()
+    np.random.seed(42)
+    try:
+        yield
+    finally:
+        np.random.set_state(state)
 
-# Test 1: Greedy Sampling
-print("\n[TEST 1] Greedy Sampling")
-print("-" * 70)
-greedy = GreedySampling()
-token_1 = greedy.sample(test_logits)
-token_2 = greedy.sample(test_logits)
-print(f"Sample 1: {token_1}")
-print(f"Sample 2: {token_2}")
 
-if token_1 == token_2:
-    print("✓ Greedy sampling is deterministic")
-else:
-    print("✗ Greedy sampling should be deterministic!")
-    sys.exit(1)
+@pytest.fixture
+def sample_logits():
+    """Reusable set of logits for sampling tests."""
+    rng = np.random.default_rng(0)
+    return rng.normal(size=128).astype(np.float32)
 
-expected_greedy = np.argmax(test_logits)
-if token_1 == expected_greedy:
-    print(f"✓ Correctly picks argmax (token {expected_greedy})")
-else:
-    print(f"✗ Should pick token {expected_greedy}, got {token_1}")
-    sys.exit(1)
 
-# Test 2: Top-K Sampling
-print("\n[TEST 2] Top-K Sampling")
-print("-" * 70)
-top_k = TopKSampling(k=10)
-samples = [top_k.sample(test_logits, temperature=1.0) for _ in range(10)]
-print(f"10 samples: {samples}")
-print(f"Unique tokens: {len(set(samples))}")
+def test_greedy_sampling_returns_argmax(sample_logits):
+    greedy = GreedySampling()
+    expected = int(np.argmax(sample_logits))
 
-if len(set(samples)) > 1:
-    print("✓ Top-K sampling is stochastic")
-else:
-    print("⚠ Top-K should produce varied samples (might be unlucky)")
+    assert greedy.sample(sample_logits) == expected
+    # Greedy sampling should be deterministic regardless of calls
+    assert greedy.sample(sample_logits) == expected
 
-# Verify samples are in top-k
-top_k_indices = np.argpartition(test_logits, -10)[-10:]
-all_in_top_k = all(s in top_k_indices for s in samples)
-if all_in_top_k:
-    print("✓ All samples are from top-k tokens")
-else:
-    print("✗ Some samples are not in top-k!")
-    sys.exit(1)
 
-# Test 3: Top-P Sampling
-print("\n[TEST 3] Top-P (Nucleus) Sampling")
-print("-" * 70)
-top_p = TopPSampling(p=0.9)
-samples = [top_p.sample(test_logits, temperature=1.0) for _ in range(10)]
-print(f"10 samples: {samples}")
-print(f"Unique tokens: {len(set(samples))}")
+def test_topk_sampling_respects_candidate_pool(sample_logits):
+    sampler = TopKSampling(k=10)
+    np.random.seed(1)
+    samples = [sampler.sample(sample_logits) for _ in range(50)]
 
-if len(set(samples)) > 1:
-    print("✓ Top-P sampling is stochastic")
-else:
-    print("⚠ Top-P should produce varied samples (might be unlucky)")
+    top_k = set(np.argpartition(sample_logits, -10)[-10:])
+    assert set(samples).issubset({int(idx) for idx in top_k})
+    # stochastic behaviour should produce more than one distinct token
+    assert len(set(samples)) > 1
 
-# Test 4: Temperature Effect
-print("\n[TEST 4] Temperature Effect")
-print("-" * 70)
 
-# High temperature (more random)
-top_k_hot = TopKSampling(k=50)
-samples_hot = [top_k_hot.sample(test_logits, temperature=2.0) for _ in range(20)]
-unique_hot = len(set(samples_hot))
+def test_topk_temperature_influences_diversity(sample_logits):
+    sampler = TopKSampling(k=40)
 
-# Low temperature (more deterministic)
-top_k_cold = TopKSampling(k=50)
-samples_cold = [top_k_cold.sample(test_logits, temperature=0.1) for _ in range(20)]
-unique_cold = len(set(samples_cold))
+    np.random.seed(2)
+    hot_samples = [sampler.sample(sample_logits, temperature=2.0) for _ in range(100)]
+    np.random.seed(2)
+    cold_samples = [sampler.sample(sample_logits, temperature=0.1) for _ in range(100)]
 
-print(f"High temp (2.0): {unique_hot} unique tokens")
-print(f"Low temp (0.1):  {unique_cold} unique tokens")
+    assert len(set(hot_samples)) >= len(set(cold_samples))
 
-if unique_hot >= unique_cold:
-    print("✓ Higher temperature produces more diversity")
-else:
-    print("⚠ Expected more diversity with higher temperature")
 
-# Test 5: Softmax Numerical Stability
-print("\n[TEST 5] Softmax Numerical Stability")
-print("-" * 70)
+def test_topp_sampling_respects_probability_mass(sample_logits):
+    sampler = TopPSampling(p=0.9)
+    np.random.seed(3)
+    samples = [sampler.sample(sample_logits) for _ in range(25)]
 
-# Extreme logits
-extreme_logits = np.array([-1000.0, 0.0, 1000.0], dtype=np.float32)
-sampler = TopKSampling(k=3)
+    probs = TopPSampling._softmax(sample_logits)
+    sorted_indices = np.argsort(probs)[::-1]
+    nucleus_size = np.searchsorted(np.cumsum(probs[sorted_indices]), 0.9) + 1
+    nucleus = {int(idx) for idx in sorted_indices[:nucleus_size]}
 
-# Should not produce NaN or Inf
-sample = sampler.sample(extreme_logits, temperature=1.0)
-print(f"Sample from extreme logits: {sample}")
+    assert set(samples).issubset(nucleus)
 
-if np.isfinite(sample):
-    print("✓ Handles extreme logits without overflow")
-else:
-    print("✗ Produced NaN or Inf!")
-    sys.exit(1)
 
-# Summary
-print("\n" + "=" * 70)
-print("✅ ALL GENERATION TESTS PASSED!")
-print("=" * 70)
-print("\n✓ Greedy sampling working")
-print("✓ Top-K sampling working")
-print("✓ Top-P sampling working")
-print("✓ Temperature control working")
-print("✓ Numerical stability verified")
-print("\n🌀 Ready for text generation!")
+def test_sampling_handles_extreme_logits():
+    extreme_logits = np.array([-1000.0, 0.0, 1000.0], dtype=np.float32)
+    sampler = TopKSampling(k=3)
+    np.random.seed(4)
+
+    sample = sampler.sample(extreme_logits, temperature=1.0)
+    assert sample in {0, 1, 2}
