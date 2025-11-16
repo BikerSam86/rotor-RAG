@@ -5,11 +5,6 @@ This implements the full Microsoft BitNet-b1.58-2B-4T architecture.
 """
 
 import sys
-import io
-
-# Fix Windows encoding (only if not already wrapped)
-if hasattr(sys.stdout, 'buffer') and not isinstance(sys.stdout, io.TextIOWrapper):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 import numpy as np
 from typing import Optional, Tuple, Dict
@@ -397,10 +392,6 @@ def load_bitnet_model(model_dir: str, use_gpu: bool = False) -> BitNetModel:
 # Example usage
 if __name__ == "__main__":
     import sys
-    import io
-
-    # Fix Windows encoding
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
     print("\nTesting BitNetModel class...")
 

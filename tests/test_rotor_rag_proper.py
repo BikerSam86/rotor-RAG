@@ -2,6 +2,10 @@
 """
 Test rotor-RAG system properly using the models directory
 """
+import pytest
+
+pytest.skip("Requires proprietary rotor-RAG model directory", allow_module_level=True)
+
 import sys
 import os
 sys.path.append('src')

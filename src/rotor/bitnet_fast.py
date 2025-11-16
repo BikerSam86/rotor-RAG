@@ -121,15 +121,22 @@ def rotor_unpack_weights_fast(bit0: np.ndarray, bit1: np.ndarray, rows: int, col
         weights: Unpacked int8 weights [rows, cols]
     """
     if _lib is None or not hasattr(_lib, 'rotor_unpack_weights'):
-        # Fall back to Python implementation
-        from rotor.transformer import TernaryLinear
-        # Create a temporary instance to use its _decode_weights method
-        temp = TernaryLinear(1, 1)
-        temp.bit0 = bit0.flatten()
-        temp.bit1 = bit1.flatten()
-        temp.out_features = rows
-        temp.in_features = cols
-        return temp._decode_weights()
+        # Python fallback: decode bits directly
+        weights = np.zeros((rows, cols), dtype=np.int8)
+        rotor_cols_bytes = (cols + 7) // 8
+        bit0 = bit0[:, :rotor_cols_bytes]
+        bit1 = bit1[:, :rotor_cols_bytes]
+
+        for row in range(rows):
+            for col in range(cols):
+                byte_idx = col // 8
+                bit_idx = col % 8
+                mask = 1 << bit_idx
+                pos = 1 if (bit0[row, byte_idx] & mask) else 0
+                neg = 1 if (bit1[row, byte_idx] & mask) else 0
+                weights[row, col] = pos - neg
+
+        return weights
 
     # Allocate output
     weights = np.zeros((rows, cols), dtype=np.int8)
@@ -164,10 +171,6 @@ def is_c_library_available() -> bool:
 
 if __name__ == "__main__":
     import sys
-    import io
-
-    # Fix Windows encoding
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
     print("Testing fast BitNet conversion...")
     print(f"C library available: {is_c_library_available()}")

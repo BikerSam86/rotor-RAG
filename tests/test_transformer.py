@@ -1,11 +1,7 @@
 """Test transformer components."""
 
 import sys
-import io
 from pathlib import Path
-
-# Fix Windows encoding
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -51,9 +47,10 @@ def test_attention():
 
     # Test with batch
     x = np.random.randn(2, 10, 512).astype(np.float32)
-    y = attn.forward(x)
+    y, cache = attn.forward(x, use_cache=True)
     print(f"  Input shape: {x.shape}")
     print(f"  Output shape: {y.shape}")
+    assert cache is not None
     print(f"  ✓ MultiHeadAttention working!")
 
 
@@ -75,9 +72,10 @@ def test_transformer_block():
     block = TransformerBlock(d_model=512, n_heads=8, d_ff=2048, n_kv_heads=4)
 
     x = np.random.randn(2, 10, 512).astype(np.float32)
-    y = block.forward(x)
+    y, cache = block.forward(x, use_cache=True)
     print(f"  Input shape: {x.shape}")
     print(f"  Output shape: {y.shape}")
+    assert cache is not None
     print(f"  ✓ TransformerBlock working!")
 
 

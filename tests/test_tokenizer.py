@@ -2,11 +2,12 @@
 Test tokenizer functionality.
 """
 
-import sys
-import io
-from pathlib import Path
+import pytest
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+pytest.skip("Requires the external BitNet tokenizer assets", allow_module_level=True)
+
+import sys
+from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from rotor.tokenizer import BitNetTokenizer

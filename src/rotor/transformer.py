@@ -118,6 +118,10 @@ class TernaryLinear:
         Returns:
             Output [batch, seq_len, out_features] or [seq_len, out_features]
         """
+        if self.weights_cache is None:
+            self.weight_shape = (self.out_features, self.in_features)
+            self.weights_cache = self._decode_weights()
+
         input_shape = x.shape
         is_3d = len(input_shape) == 3
 

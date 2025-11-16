@@ -2,6 +2,10 @@
 """
 Test rotor-RAG with the real BitNet 2B model from LM Studio
 """
+import pytest
+
+pytest.skip("Requires access to local BitNet 2B assets", allow_module_level=True)
+
 import sys
 import os
 sys.path.append('src')
